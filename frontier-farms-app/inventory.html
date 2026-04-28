@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Inventory — Frontier Farms</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Inventory</h1>
+  <div class="sub" id="inv-sub">From Google Sheet</div>
+</header>
+
+<main class="page-body">
+
+  <div id="reorder-alert"></div>
+
+  <div class="card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+      Inventory is managed in the <strong>Google Sheet</strong> shared with your managers.
+      This screen shows a read-only snapshot. To update quantities,
+      open the sheet directly.
+    </div>
+    <a id="sheet-link" href="#" style="display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:var(--green-dark);text-decoration:none">Open Google Sheet →</a>
+  </div>
+
+  <div class="sh">Chemical</div>
+  <div class="card-flush" id="chem-list">
+    <div class="inv-row"><div><div class="inv-name">Roundup PowerMAX</div><div class="inv-cat">Herbicide · gal</div></div><div class="inv-qty">200</div></div>
+    <div class="inv-row"><div><div class="inv-name">Prefix</div><div class="inv-cat">Herbicide · gal</div></div><div class="inv-qty">80</div></div>
+    <div class="inv-row"><div><div class="inv-name">Warrant 2EC</div><div class="inv-cat">Herbicide · gal</div></div><div><span class="badge badge-red" style="display:block;text-align:right;margin-bottom:2px">REORDER</span><div class="inv-qty" style="color:#991f1f">8</div></div></div>
+    <div class="inv-row"><div><div class="inv-name">Quilt Xcel</div><div class="inv-cat">Fungicide · gal</div></div><div class="inv-qty">40</div></div>
+    <div class="inv-row"><div><div class="inv-name">Headline AMP</div><div class="inv-cat">Fungicide · gal</div></div><div class="inv-qty">30</div></div>
+    <div class="inv-row"><div><div class="inv-name">28% UAN</div><div class="inv-cat">Fertilizer · gal</div></div><div class="inv-qty">8,000</div></div>
+  </div>
+
+  <div class="sh">Seed</div>
+  <div class="card-flush">
+    <div class="inv-row"><div><div class="inv-name">DKC 61-40 RIB</div><div class="inv-cat">Corn seed · bags</div></div><div class="inv-qty">540</div></div>
+    <div class="inv-row"><div><div class="inv-name">DKC 58-07 RIB</div><div class="inv-cat">Corn seed · bags</div></div><div class="inv-qty">400</div></div>
+    <div class="inv-row"><div><div class="inv-name">Asgrow AG47X9</div><div class="inv-cat">Soy seed · bags</div></div><div class="inv-qty">300</div></div>
+    <div class="inv-row"><div><div class="inv-name">Asgrow AG43X6</div><div class="inv-cat">Soy seed · bags</div></div><div class="inv-qty">200</div></div>
+  </div>
+
+  <div class="sh">Fuel</div>
+  <div class="card-flush">
+    <div class="inv-row"><div><div class="inv-name">Diesel</div><div class="inv-cat">Fuel · gallons</div></div><div class="inv-qty">2,814</div></div>
+  </div>
+
+  <div style="font-size:11px;color:var(--text-tiny);text-align:center;margin-top:8px" id="inv-timestamp">Quantities reflect last Google Sheet update</div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a class="nav-item" data-page="home" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2z"/></svg></div>Home
+  </a>
+  <a class="nav-item" data-page="brief" href="brief.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="12" height="14" rx="2"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></div>Brief
+  </a>
+  <a class="nav-item" data-page="fields" href="fields.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="7" height="8" rx="1"/><rect x="11" y="6" width="7" height="12" rx="1"/><rect x="6" y="2" width="7" height="16" rx="1" opacity=".4"/></svg></div>Fields
+  </a>
+  <a class="nav-item active" data-page="inventory" href="inventory.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="12" rx="1.5"/><path d="M3 9h14"/><path d="M8 5V3M12 5V3"/></svg></div>Inventory
+  </a>
+</nav>
+
+<script src="app.js"></script>
+<script>
+  // Set sheet link from settings
+  const sheetUrl = localStorage.getItem('ff_sheet_url') || '#';
+  document.getElementById('sheet-link').href = sheetUrl;
+  if (sheetUrl === '#') {
+    document.getElementById('sheet-link').textContent = 'Set sheet URL in Settings →';
+    document.getElementById('sheet-link').href = 'settings.html';
+  }
+
+  // Reorder alert
+  const reorderItems = ['Warrant 2EC']; // in real version, read from sheet API
+  if (reorderItems.length) {
+    document.getElementById('reorder-alert').innerHTML =
+      `<div class="alert-banner alert-red"><div class="alert-dot"></div><div class="alert-text">${reorderItems.length} item${reorderItems.length > 1 ? 's' : ''} below reorder threshold: ${reorderItems.join(', ')}</div></div>`;
+  }
+</script>
+</body>
+</html>
