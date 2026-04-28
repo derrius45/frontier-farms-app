@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Frontier Farms">
+  <title>Frontier Farms</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Frontier Farms</h1>
+  <div class="sub" id="today-date">Loading...</div>
+</header>
+
+<main class="page-body">
+
+  <div class="status-trio" id="status-trio">
+    <div class="trio trio-gray"><div class="trio-label">Field</div><div class="trio-val" id="s-field">—</div></div>
+    <div class="trio trio-gray"><div class="trio-label">Equip</div><div class="trio-val" id="s-equip">—</div></div>
+    <div class="trio trio-gray"><div class="trio-label">Market</div><div class="trio-val" id="s-market">—</div></div>
+  </div>
+
+  <div class="wx-strip" id="wx-strip">
+    <div class="wx-item"><div class="wx-val" id="wx-temp">—</div><div class="wx-lbl">Temp °F</div></div>
+    <div class="wx-div"></div>
+    <div class="wx-item"><div class="wx-val" id="wx-vpd">—</div><div class="wx-lbl">VPD kPa</div></div>
+    <div class="wx-div"></div>
+    <div class="wx-item"><div class="wx-val" id="wx-rh">—</div><div class="wx-lbl">RH %</div></div>
+    <div class="wx-div"></div>
+    <div class="wx-item"><div class="wx-val">+<span id="wx-gdu">390</span></div><div class="wx-lbl">GDU</div></div>
+  </div>
+
+  <div id="alert-area"></div>
+
+  <div class="email-row">
+    <label>Send to</label>
+    <input type="email" id="email-input" placeholder="owner@frontierfarms.com">
+  </div>
+
+  <button class="btn btn-primary" id="gen-btn" onclick="generateReport()">Generate today's brief</button>
+  <button class="btn btn-outline" id="email-btn" disabled onclick="doSendEmail()">Send to email</button>
+
+  <div class="loading-bar" id="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+  <div class="status-text" id="status-text"></div>
+
+  <div class="sh">Quick links</div>
+  <a class="quick-link" href="brief.html">
+    <span class="ql-label">Today's brief</span>
+    <span class="ql-muted" id="ql-brief">Generate above →</span>
+  </a>
+  <a class="quick-link" href="fields.html">
+    <span class="ql-label">Field status</span>
+    <span class="ql-green" id="ql-fields">4 fields →</span>
+  </a>
+  <a class="quick-link" href="inventory.html">
+    <span class="ql-label">Inventory</span>
+    <span class="ql-muted" id="ql-inventory">View →</span>
+  </a>
+  <a class="quick-link" href="settings.html">
+    <span class="ql-label">Settings</span>
+    <span class="ql-muted">API key · fields · email →</span>
+  </a>
+
+</main>
+
+<nav class="bottom-nav">
+  <a class="nav-item active" data-page="home" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2z"/></svg></div>Home
+  </a>
+  <a class="nav-item" data-page="brief" href="brief.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="12" height="14" rx="2"/><line x1="7" y1="7" x2="13" y2="7"/><line x[...]
+    </div>Brief
+  </a>
+  <a class="nav-item" data-page="fields" href="fields.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="7" height="8" rx="1"/><rect x="11" y="6" width="7" height="12" rx=[...]
+    </div>Fields
+  </a>
+  <a class="nav-item" data-page="inventory" href="inventory.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="12" rx="1.5"/><path d="M3 9h14"/><path d="M8 5V3M12 5V3[...]
+    </div>Inventory
+  </a>
+</nav>
+
+<script src="app.js"></script>
+<script>
+  document.getElementById('today-date').textContent = todayStr();
+  document.getElementById('wx-gdu').textContent = CONFIG.gduAhead;
+
+  // Restore email
+  const savedEmail = localStorage.getItem('ff_email') || '';
+  document.getElementById('email-input').value = savedEmail;
+  document.getElementById('email-input').addEventListener('change', function() {
+    localStorage.setItem('ff_email', this.value);
+    CONFIG.ownerEmail = this.value;
+  });
+
+  // Load cached report if available
+  const cached = loadReport();
+  if (cached && (Date.now() - cached.ts) < 3600000) {
+    applyStatusTrio(cached.parsed);
+    applyWeather(cached.wx);
+    document.getElementById('email-btn').disabled = false;
+    document.getElementById('ql-brief').textContent = 'Ready →';
+    document.getElementById('ql-brief').className = 'ql-green';
+  } else {
+    // Auto-fetch weather on load
+    fetchWeather().then(wx => applyWeather(wx)).catch(() => {});
+  }
+
+  function applyWeather(wx) {
+    document.getElementById('wx-temp').textContent = Math.round(wx.tempF);
+    document.getElementById('wx-vpd').textContent  = wx.vpd.toFixed(1);
+    document.getElementById('wx-rh').textContent   = Math.round(wx.rh);
+
+    const alertArea = document.getElementById('alert-area');
+    alertArea.innerHTML = '';
+    if (wx.vpd >= 2.5) {
+      alertArea.innerHTML = `<div class="alert-banner alert-red"><div class="alert-dot"></div><div class="alert-text">VPD ${wx.vpd} kPa — stress level evaporative demand.</div></div>`;
+    } else if (wx.rhStreak >= 40) {
+      alertArea.innerHTML = `<div class="alert-banner alert-amber"><div class="alert-dot"></div><div class="alert-text">RH above 85% for ${wx.rhStreak}h — disease pressure building.</div></div>[...]
+    } else if (wx.vpd >= 1.5) {
+      alertArea.innerHTML = `<div class="alert-banner alert-amber"><div class="alert-dot"></div><div class="alert-text">VPD ${wx.vpd} kPa — evaporative demand elevated. Watch forecast.</div></d[...]
+    }
+  }
+
+  function applyStatusTrio(parsed) {
+    const trio = document.getElementById('status-trio');
+    const cards = trio.querySelectorAll('.trio');
+    const statuses = [parsed.field, parsed.equip, parsed.market];
+    const labels   = ['Field', 'Equip', 'Market'];
+    cards.forEach((c, i) => {
+      c.className = 'trio ' + statusClass(statuses[i]);
+      c.querySelector('.trio-label').textContent = labels[i];
+      c.querySelector('.trio-val').textContent   = statusLabel(statuses[i]);
+    });
+  }
+
+  function setProgress(pct, txt) {
+    document.getElementById('loading-bar').style.display = 'block';
+    document.getElementById('loading-fill').style.width  = pct + '%';
+    document.getElementById('status-text').textContent   = txt;
+  }
+
+  async function generateReport() {
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+    try {
+      setProgress(15, 'Fetching live weather...');
+      const wx = await fetchWeather();
+      applyWeather(wx);
+
+      setProgress(50, 'Generating brief with Claude...');
+      const text   = await callClaude(buildReportPrompt(wx));
+      const parsed = parseReport(text);
+
+      applyStatusTrio(parsed);
+      saveReport(parsed, wx);
+
+      document.getElementById('email-btn').disabled = false;
+      document.getElementById('ql-brief').textContent = 'Ready →';
+      document.getElementById('ql-brief').className   = 'ql-green';
+
+      setProgress(100, 'Done — tap Brief to read or Send to email.');
+      setTimeout(() => {
+        document.getElementById('loading-bar').style.display = 'none';
+        document.getElementById('status-text').textContent   = '';
+      }, 2000);
+
+    } catch(e) {
+      document.getElementById('status-text').textContent = 'Error: ' + e.message;
+    }
+    btn.disabled = false;
+  }
+
+  function doSendEmail() {
+    const r = loadReport();
+    if (!r) return;
+    const email = document.getElementById('email-input').value.trim();
+    sendReportEmail(r.parsed, email);
+  }
+</script>
+</body>
+</html>

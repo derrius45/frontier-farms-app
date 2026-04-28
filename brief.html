@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Daily Brief — Frontier Farms</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Today's brief</h1>
+  <div class="sub" id="gen-time">—</div>
+</header>
+
+<main class="page-body">
+
+  <div id="no-report" class="card" style="text-align:center;padding:24px 16px">
+    <div style="font-size:14px;color:#666;margin-bottom:12px">No report generated yet.</div>
+    <a href="index.html" class="btn btn-primary" style="display:inline-block;width:auto;padding:10px 24px;text-decoration:none">Go to Home →</a>
+  </div>
+
+  <div id="report-content" style="display:none">
+    <div class="status-trio" id="status-trio">
+      <div class="trio trio-gray"><div class="trio-label">Field</div><div class="trio-val" id="s-field">—</div></div>
+      <div class="trio trio-gray"><div class="trio-label">Equip</div><div class="trio-val" id="s-equip">—</div></div>
+      <div class="trio trio-gray"><div class="trio-label">Market</div><div class="trio-val" id="s-market">—</div></div>
+    </div>
+    <div id="sections"></div>
+    <button class="btn btn-outline" id="email-btn" onclick="doEmail()">Send to email</button>
+    <button class="btn btn-primary" style="margin-top:4px" onclick="location.href='index.html'">Regenerate →</button>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a class="nav-item" data-page="home" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2z"/></svg></div>Home
+  </a>
+  <a class="nav-item active" data-page="brief" href="brief.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="12" height="14" rx="2"/><line x1="7" y1="7" x2="13" y2="7"/><line x[...]
+    </div>Brief
+  </a>
+  <a class="nav-item" data-page="fields" href="fields.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="7" height="8" rx="1"/><rect x="11" y="6" width="7" height="12" rx=[...]
+    </div>Fields
+  </a>
+  <a class="nav-item" data-page="inventory" href="inventory.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="12" rx="1.5"/><path d="M3 9h14"/><path d="M8 5V3M12 5V3[...]
+    </div>Inventory
+  </a>
+</nav>
+
+<script src="app.js"></script>
+<script>
+  const r = loadReport();
+  if (r) {
+    document.getElementById('no-report').style.display = 'none';
+    document.getElementById('report-content').style.display = 'block';
+
+    const ts = new Date(r.ts);
+    document.getElementById('gen-time').textContent =
+      'Generated ' + ts.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+
+    // Status trio
+    const statuses = [r.parsed.field, r.parsed.equip, r.parsed.market];
+    const labels   = ['Field', 'Equip', 'Market'];
+    document.querySelectorAll('#status-trio .trio').forEach((c, i) => {
+      c.className = 'trio ' + statusClass(statuses[i]);
+      c.querySelector('.trio-label').textContent = labels[i];
+      c.querySelector('.trio-val').textContent   = statusLabel(statuses[i]);
+    });
+
+    // Sections
+    const container = document.getElementById('sections');
+    const tagMap = { 'FIELD OPS': r.parsed.field, 'EQUIPMENT': r.parsed.equip, 'EQUIPMENT + LABOR': r.parsed.equip, 'MARKET': r.parsed.market, 'MARKET + GRAIN': r.parsed.market, 'ENVIRONMENT': r.p[...]
+    r.parsed.sections.forEach(sec => {
+      const status = tagMap[sec.title.toUpperCase()] || 'GRAY';
+      const div = document.createElement('div');
+      div.className = 'brief-block';
+      div.innerHTML = `
+        <span class="brief-tag ${tagClass(status)}">${sec.title} — ${statusLabel(status)}</span>
+        <div class="brief-text">${sec.text}</div>
+        ${sec.decision ? `<div class="brief-decision">${sec.decision}</div>` : ''}
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function doEmail() {
+    const r = loadReport();
+    if (!r) return;
+    const email = localStorage.getItem('ff_email') || '';
+    sendReportEmail(r.parsed, email);
+  }
+</script>
+</body>
+</html>

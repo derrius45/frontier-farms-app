@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Settings — Frontier Farms</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .setting-group { background: #fff; border-radius: 12px; border: 0.5px solid var(--border); margin-bottom: 12px; overflow: hidden; }
+    .sg-header { padding: 10px 14px; background: var(--gray-bg); border-bottom: 0.5px solid var(--border); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; colo[...]
+    .sg-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-bottom: 0.5px solid var(--border); }
+    .sg-row:last-child { border-bottom: none; }
+    .sg-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .sg-hint  { font-size: 11px; color: var(--text-muted); }
+    .sg-row input { font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; width: 100%; margin-top: 4px; }
+    .sg-row input[type=number] { width: 100px; }
+    .save-toast { display: none; background: var(--green-light); color: var(--green-dark); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; text-align: center; margin-bott[...]
+    .config-header { display: grid; grid-template-columns: 1fr 96px 46px 58px 22px; gap: 5px; padding: 6px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em[...]
+    #field-config-rows { padding: 8px 14px; }
+    .add-field-btn { font-size: 13px; color: var(--green-dark); font-weight: 600; text-decoration: none; padding: 8px 14px; display: block; border-top: 0.5px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Settings</h1>
+  <div class="sub">Tap Save after any change</div>
+</header>
+
+<main class="page-body">
+
+  <div class="save-toast" id="toast">Settings saved!</div>
+
+  <div class="setting-group">
+    <div class="sg-header">API credentials</div>
+    <div class="sg-row">
+      <span class="sg-label">Anthropic API key</span>
+      <span class="sg-hint">Get from console.anthropic.com — powers the daily brief</span>
+      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="sg-row">
+      <span class="sg-label">Report email address</span>
+      <span class="sg-hint">Where the brief gets sent each morning</span>
+      <input type="email" id="owner-email" placeholder="owner@frontierfarms.com">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-header">Season settings</div>
+    <div class="sg-row">
+      <span class="sg-label">GDU offset (above normal)</span>
+      <span class="sg-hint">Update weekly from Greencast or Pioneer GDU tool for your zip</span>
+      <input type="number" id="gdu-ahead" placeholder="390">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-header">Google Sheet URL</div>
+    <div class="sg-row">
+      <span class="sg-label">Manager daily log sheet</span>
+      <span class="sg-hint">Paste the full Google Sheets URL — used for the Inventory link</span>
+      <input type="url" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/...">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="sg-header">Field configuration</div>
+    <div class="config-header">
+      <span>Field name</span><span>Planted</span><span>RM</span><span>Crop</span><span></span>
+    </div>
+    <div id="field-config-rows"></div>
+    <a href="#" class="add-field-btn" onclick="addField(event)">+ Add field</a>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveAll()">Save settings</button>
+  <a href="index.html" class="btn btn-outline" style="display:block;text-decoration:none;text-align:center">Back to home</a>
+
+</main>
+
+<nav class="bottom-nav">
+  <a class="nav-item" data-page="home" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2z"/></svg></div>Home
+  </a>
+  <a class="nav-item" data-page="brief" href="brief.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="12" height="14" rx="2"/><line x1="7" y1="7" x2="13" y2="7"/><line x[...]
+    </div>Brief
+  </a>
+  <a class="nav-item" data-page="fields" href="fields.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="7" height="8" rx="1"/><rect x="11" y="6" width="7" height="12" rx=[...]
+    </div>Fields
+  </a>
+  <a class="nav-item" data-page="inventory" href="inventory.html">
+    <div class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="12" rx="1.5"/><path d="M3 9h14"/><path d="M8 5V3M12 5V3[...]
+    </div>Inventory
+  </a>
+</nav>
+
+<script src="app.js"></script>
+<script>
+  // Populate fields on load
+  document.getElementById('api-key').value     = CONFIG.anthropicKey || '';
+  document.getElementById('owner-email').value = CONFIG.ownerEmail   || localStorage.getItem('ff_email') || '';
+  document.getElementById('gdu-ahead').value   = CONFIG.gduAhead     || 390;
+  document.getElementById('sheet-url').value   = localStorage.getItem('ff_sheet_url') || '';
+
+  function renderFieldRows() {
+    const container = document.getElementById('field-config-rows');
+    container.innerHTML = '';
+    CONFIG.fields.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'config-row';
+      row.innerHTML = `
+        <input type="text"   value="${f.name}"    placeholder="Field name" data-i="${i}" data-k="name">
+        <input type="text"   value="${f.planted}" placeholder="YYYY-MM-DD" data-i="${i}" data-k="planted">
+        <input type="number" value="${f.rm}"      placeholder="111"        data-i="${i}" data-k="rm" min="90" max="130" step="0.1">
+        <select data-i="${i}" data-k="crop">
+          <option value="corn"${f.crop==='corn'?' selected':''}>Corn</option>
+          <option value="soy"${f.crop==='soy'?' selected':''}>Soy</option>
+        </select>
+        <span class="del" onclick="removeField(${i})">×</span>
+      `;
+      container.appendChild(row);
+    });
+  }
+  renderFieldRows();
+
+  function addField(e) {
+    e.preventDefault();
+    CONFIG.fields.push({ name: '', planted: '2026-05-01', rm: 111, crop: 'corn' });
+    renderFieldRows();
+  }
+  function removeField(i) {
+    CONFIG.fields.splice(i, 1);
+    renderFieldRows();
+  }
+
+  function saveAll() {
+    // Read field rows back
+    const rows = document.querySelectorAll('#field-config-rows .config-row');
+    CONFIG.fields = Array.from(rows).map(row => {
+      const inputs = row.querySelectorAll('input,select');
+      return {
+        name:    inputs[0].value.trim(),
+        planted: inputs[1].value.trim(),
+        rm:      parseFloat(inputs[2].value) || 111,
+        crop:    inputs[3].value
+      };
+    }).filter(f => f.name);
+
+    CONFIG.anthropicKey = document.getElementById('api-key').value.trim();
+    CONFIG.ownerEmail   = document.getElementById('owner-email').value.trim();
+    CONFIG.gduAhead     = parseInt(document.getElementById('gdu-ahead').value) || 390;
+
+    localStorage.setItem('ff_email',     CONFIG.ownerEmail);
+    localStorage.setItem('ff_sheet_url', document.getElementById('sheet-url').value.trim());
+    saveSettings();
+
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 2000);
+  }
+</script>
+</body>
+</html>
