@@ -1,0 +1,5 @@
+name = "frontier-farms-app"
+compatibility_date = "2026-04-28"
+
+[assets]
+directory = "./public"
